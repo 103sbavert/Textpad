@@ -1,4 +1,4 @@
-package com.sbeve72.textpad.ui.theme
+package com.sbeve72.textpad.presentation.ui.theme
 
 import android.app.Activity
 import android.os.Build
