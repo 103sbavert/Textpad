@@ -1,6 +1,10 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+
+    //_____hilt-plugins______
+    id 'kotlin-kapt'
+    id 'com.google.dagger.hilt.android'
 }
 
 android {
@@ -31,7 +35,7 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = JavaVersion.VERSION_1_8
     }
     buildFeatures {
         compose true
@@ -64,4 +68,13 @@ dependencies {
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.4.3'
     debugImplementation 'androidx.compose.ui:ui-tooling:1.4.3'
     debugImplementation 'androidx.compose.ui:ui-test-manifest:1.4.3'
+
+    // _____hilt-dependencies______
+    implementation "com.google.dagger:hilt-android:2.44"
+    kapt "com.google.dagger:hilt-compiler:2.44"
+}
+
+// Allow references to generated code
+kapt {
+    correctErrorTypes true
 }
