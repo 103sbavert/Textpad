@@ -3,16 +3,15 @@ package com.sbeve72.textpad.presentation
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.rememberScrollableState
-import androidx.compose.foundation.gestures.scrollable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,124 +20,142 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.sbeve72.textpad.R
+import androidx.compose.ui.unit.sp
 import com.sbeve72.textpad.presentation.ui.theme.TextpadTheme
-
-enum class AppBarState {
-    Expanded, Collapsed
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MyApp()
+            TextpadTheme {
+                HomeScreenContainer(Modifier.wrapContentSize())
+            }
         }
     }
 }
 
-
 @Preview
 @Composable
-private fun MyApp() {
-    val modifier = Modifier
-    var appBarState by remember { mutableStateOf(AppBarState.Collapsed) }
-
-    val deltaConsumer = { delta: Float ->
-        if (appBarState == AppBarState.Expanded) {
-            if (delta > 0) {
-                appBarState = AppBarState.Collapsed
-            }
-        } else {
-            if (delta < 0) {
-                appBarState = AppBarState.Expanded
-            }
-        }
-        delta
+fun HomeScreenContainer(
+    modifier: Modifier = Modifier, appBarMinHeight: Float = with(LocalDensity.current) {
+        56.dp.toPx()
+    }, appBarMaxHeight: Float = with(LocalDensity.current) {
+        100.dp.toPx()
     }
+) {
+    var scaleFactorDueToScroll by remember { mutableStateOf(1F) }
 
-    val scrollState = rememberScrollableState(deltaConsumer)
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
 
-    TextpadTheme {
-        Surface(modifier = modifier.fillMaxHeight(), color = MaterialTheme.colorScheme.surface) {
-            Column {
-                AppBar(appBarState = appBarState)
-                Column(
-                    modifier.scrollable(scrollState, Orientation.Vertical)
-                ) {
-                    for (i in 1..100) {
-                        Text(text = "ITS")
-                    }
+            override fun onPreScroll(
+                available: Offset, source: NestedScrollSource
+            ): Offset {
+
+                val verticalScroll = available.y
+                val oldHeight = scaleFactorDueToScroll * appBarMaxHeight
+                val newHeight = if (oldHeight + verticalScroll > 0) oldHeight + verticalScroll
+                else 0F
+
+                return if (verticalScroll < 0) {
+                    scaleFactorDueToScroll = newHeight / appBarMaxHeight
+                    Offset(0F, newHeight - oldHeight)
+                } else {
+                    Offset.Zero
+                }
+
+            }
+
+            override fun onPostScroll(
+                consumed: Offset, available: Offset, source: NestedScrollSource
+            ): Offset {
+                val verticalScroll = available.y
+                val oldHeight = scaleFactorDueToScroll * appBarMaxHeight
+                val newHeight =
+                    if (oldHeight + verticalScroll < appBarMaxHeight) oldHeight + verticalScroll
+                    else appBarMaxHeight
+
+                return if (verticalScroll > 0) {
+                    scaleFactorDueToScroll = newHeight / appBarMaxHeight
+                    Offset(0F, newHeight - oldHeight)
+                } else {
+                    Offset.Zero
                 }
             }
         }
     }
 
-    if (scrollState.isScrollInProgress) {
-        // collapse and expand the appbar
-    }
-}
 
-
-@Preview
-@Composable
-fun Button(modifier: Modifier = Modifier) {
-    Box (modifier.width(100.dp).heightIn(32.dp)) {
-        Icon (
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-            contentDescription = null,
-            modifier = modifier.align(Alignment.CenterStart).fillMaxWidth()
+    Column(modifier.fillMaxSize()) {
+        AppBar(
+            appBarMinHeight,
+            appBarMaxHeight,
+            scaleFactorDueToScroll
         )
-        Text(
-            text = "String",
-            modifier = modifier.align(Alignment.Center).fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
-fun AppBar(modifier: Modifier = Modifier, appBarState: AppBarState) {
-    Surface(modifier.fillMaxWidth()) {
-        if (appBarState == AppBarState.Collapsed) {
-            CollapsedAppBar(modifier)
-        } else {
-            ExpandedAppBar(modifier)
+        LazyColumn(Modifier.nestedScroll(nestedScrollConnection)) {
+            items(15) {
+                Text("Sample Text $it", fontSize = 60.sp, modifier = modifier.wrapContentSize())
+            }
         }
+
     }
 }
 
-
 @Composable
-fun CollapsedAppBar(modifier: Modifier) {
-    Box(
-        modifier = modifier.heightIn(min = 48.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.app_name),
-            modifier = modifier.align(Alignment.BottomStart),
-            style = MaterialTheme.typography.headlineSmall
-        )
+fun AppBar(
+    minHeight: Float, maxHeight: Float, scaleFactor: Float
+) {
+    val shouldShowShadow = remember {
+        mutableStateOf(scaleFactor < 1)
     }
-}
 
+    val maxHeightDp = with(LocalDensity.current) {
+        maxHeight.toDp().value
+    }
 
-@Composable
-fun ExpandedAppBar(modifier: Modifier) {
-    Box(
-        modifier = modifier.heightIn(min = 96.dp)
+    val minHeightDp = with(LocalDensity.current) {
+        minHeight.toDp().value
+    }
+
+    val animatedHeight by animateFloatAsState(
+        minHeightDp + (maxHeightDp - minHeightDp) * scaleFactor
+    )
+
+    val animatedFontSize by animateFloatAsState(
+        24 + scaleFactor * (36 - 24)
+    )
+
+    val animatedAlignment by animateFloatAsState(
+        scaleFactor - 1
+    )
+
+    Surface(
+        Modifier
+            .background(MaterialTheme.colorScheme.error)
+            .height(animatedHeight.dp)
+            .shadow(if (shouldShowShadow.value) 6.dp else 0.dp)
+            .fillMaxWidth()
     ) {
-        Text(
-            text = stringResource(R.string.app_name),
-            modifier = modifier.align(Alignment.BottomCenter),
-            style = MaterialTheme.typography.headlineMedium
-        )
+        Column(
+            modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Text",
+                fontSize = animatedFontSize.sp,
+                modifier = Modifier
+                    .wrapContentSize()
+                    .align(BiasAlignment.Horizontal(animatedAlignment))
+            )
+        }
     }
 }
