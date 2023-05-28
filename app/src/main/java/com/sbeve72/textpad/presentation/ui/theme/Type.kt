@@ -14,6 +14,12 @@ val Typography = Typography(
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.5.sp
+    ),
+    titleLarge = TextStyle(
+        fontSize = 36.sp,
+    ),
+    titleMedium = TextStyle(
+        fontSize = 24.sp
     )
     /* Other default text styles to override
     titleLarge = TextStyle(
@@ -31,4 +37,5 @@ val Typography = Typography(
         letterSpacing = 0.5.sp
     )
     */
+
 )
